@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ASTRA R3 Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-slate-100 text-slate-900">
+    <div id="root" class="min-h-screen"></div>
+
+    <script type="text/babel">
+      const { useState, useMemo } = React;
+
+      const mockAnalyses = [
+        {
+          id: "EH-10234",
+          role: "Receptionist",
+          businessUnit: "Park Operations",
+          roleType: "Front of House",
+          owner: "emma.carter@hpg.com.au",
+          date: "12 Nov 2025",
+          status: "Complete",
+          version: 2,
+          roleTemplate: "Receptionist",
+          questions: [
+            "Describe your approach to guest check-ins during high volume periods.",
+            "How do you triage maintenance requests that come in via multiple systems?",
+          ],
+          weights: [
+            { label: "Experience", value: 40 },
+            { label: "Systems", value: 25 },
+            { label: "Customer Focus", value: 20 },
+            { label: "Communication", value: 15 },
+          ],
+          biases: [
+            { label: "+5 Employment Hero experience" },
+            { label: "-5 no admin experience" },
+          ],
+          shortlist: {
+            runAt: "12 Nov 2025 09:12",
+            candidates: [
+              {
+                id: "cand-1",
+                name: "Jeremiah Ng",
+                score: 92,
+                location: "Brisbane",
+                workingRights: "Citizen",
+                salary: "90k",
+                systems: ["Employment Hero", "SAP"],
+                status: "New",
+                summary:
+                  "5 years leading reception teams across multi-park portfolios, strong digital adoption background.",
+                insights: {
+                  tools: "Employment Hero, SAP, Zendesk",
+                  coverLetter:
+                    "Highlighting experience rolling out contactless check-in kiosks across parks.",
+                  biasBreakdown: [
+                    "Experience +36",
+                    "Systems +23",
+                    "Customer Focus +18",
+                    "Communication +15",
+                    "Bias: +5 Employment Hero experience",
+                  ],
+                },
+                flags: ["Working Rights Verified"],
+              },
+              {
+                id: "cand-2",
+                name: "Alicia Moran",
+                score: 88,
+                location: "Gold Coast",
+                workingRights: "PR Holder",
+                salary: "85k",
+                systems: ["Employment Hero", "Salesforce"],
+                status: "Returning",
+                summary:
+                  "Former duty manager with multi-property oversight. Strong guest escalation management.",
+                insights: {
+                  tools: "Employment Hero, Salesforce, Xero",
+                  coverLetter:
+                    "Speaks to experience scaling guest services for holiday parks with 100+ sites.",
+                  biasBreakdown: [
+                    "Experience +34",
+                    "Systems +20",
+                    "Customer Focus +22",
+                    "Communication +12",
+                  ],
+                },
+                flags: ["Incomplete – Screening Blank"],
+              },
+              {
+                id: "cand-3",
+                name: "Leon Wu",
+                score: 81,
+                location: "Sunshine Coast",
+                workingRights: "Citizen",
+                salary: "82k",
+                systems: ["Opera", "Guesty"],
+                status: "New",
+                summary:
+                  "Multi-lingual front office lead with strong upsell metrics and EH exposure.",
+                insights: {
+                  tools: "Opera, Guesty, Employment Hero",
+                  coverLetter:
+                    "Provides detail on weekly reporting cadence and partnering with HRBP team.",
+                  biasBreakdown: [
+                    "Experience +30",
+                    "Systems +18",
+                    "Customer Focus +17",
+                    "Communication +16",
+                    "Bias: +5 Employment Hero experience",
+                  ],
+                },
+                flags: ["New Candidate"],
+              },
+            ],
+          },
+        },
+        {
+          id: "EH-20488",
+          role: "Grounds Supervisor",
+          businessUnit: "Assets & Maintenance",
+          roleType: "Grounds",
+          owner: "liam.singh@hpg.com.au",
+          date: "05 Nov 2025",
+          status: "In Review",
+          version: 1,
+          roleTemplate: "Grounds Supervisor",
+          questions: [
+            "How do you balance preventative maintenance with guest-impacting repairs?",
+            "Describe your experience with multi-site contractor management.",
+          ],
+          weights: [
+            { label: "Maintenance Experience", value: 45 },
+            { label: "Safety", value: 25 },
+            { label: "Leadership", value: 20 },
+            { label: "Systems", value: 10 },
+          ],
+          biases: [
+            { label: "+5 trade qualification" },
+            { label: "-5 no CMMS exposure" },
+          ],
+          shortlist: {
+            runAt: "05 Nov 2025 14:37",
+            candidates: [
+              {
+                id: "cand-4",
+                name: "Samir Patel",
+                score: 86,
+                location: "Melbourne",
+                workingRights: "Citizen",
+                salary: "95k",
+                systems: ["CMMS", "ArcGIS"],
+                status: "New",
+                summary:
+                  "Certified arborist managing 5 resorts, leads preventative maintenance schedules.",
+                insights: {
+                  tools: "CMMS, ArcGIS, Excel",
+                  coverLetter: "Discusses migration to predictive maintenance scoring.",
+                  biasBreakdown: [
+                    "Maintenance Experience +40",
+                    "Safety +20",
+                    "Leadership +16",
+                    "Systems +10",
+                    "Bias: +5 trade qualification",
+                  ],
+                },
+                flags: ["Medical Clearance Pending"],
+              },
+            ],
+          },
+        },
+      ];
+
+      const roleTemplates = {
+        HRBP: [
+          {
+            id: "receptionist",
+            name: "Receptionist",
+            businessUnit: "Park Operations",
+            roleType: "Front of House",
+            defaultWeights: [
+              { label: "Experience", value: 40 },
+              { label: "Skills", value: 30 },
+              { label: "Education", value: 20 },
+              { label: "Communication", value: 10 },
+            ],
+            defaultBiases: [
+              { label: "+5 Employment Hero experience" },
+              { label: "-5 no admin experience" },
+            ],
+            defaultQuestions: [
+              "How do you orchestrate arrivals when multiple coaches arrive simultaneously?",
+              "Describe your approach to resolving conflicting guest priorities during peak periods.",
+              "What is your experience with Employment Hero workflows for onboarding?",
+              "How do you coach team members to adopt new digital tools?",
+            ],
+          },
+          {
+            id: "operations-lead",
+            name: "Operations Lead",
+            businessUnit: "Head Office",
+            roleType: "Leadership",
+            defaultWeights: [
+              { label: "Leadership", value: 35 },
+              { label: "Systems", value: 25 },
+              { label: "Operational Excellence", value: 25 },
+              { label: "Communication", value: 15 },
+            ],
+            defaultBiases: [
+              { label: "+5 cross-park leadership" },
+              { label: "-5 no systems migration experience" },
+            ],
+            defaultQuestions: [
+              "Describe a time you led a multi-park rollout with tight timelines.",
+              "How do you measure operational excellence across dispersed teams?",
+              "What system migrations have you overseen in the past 2 years?",
+              "How do you reinforce communication cadences for remote teams?",
+            ],
+          },
+        ],
+        "Park Manager": [
+          {
+            id: "receptionist",
+            name: "Receptionist",
+            businessUnit: "Park Operations",
+            roleType: "Front of House",
+            defaultWeights: [
+              { label: "Experience", value: 40 },
+              { label: "Skills", value: 30 },
+              { label: "Education", value: 20 },
+              { label: "Communication", value: 10 },
+            ],
+            defaultQuestions: [
+              "How do you orchestrate arrivals when multiple coaches arrive simultaneously?",
+              "Describe your approach to resolving conflicting guest priorities during peak periods.",
+              "What is your experience with Employment Hero workflows for onboarding?",
+              "How do you coach team members to adopt new digital tools?",
+            ],
+          },
+          {
+            id: "housekeeper",
+            name: "Housekeeper",
+            businessUnit: "Park Operations",
+            roleType: "Housekeeping",
+            defaultWeights: [
+              { label: "Experience", value: 35 },
+              { label: "Detail Orientation", value: 30 },
+              { label: "Reliability", value: 25 },
+              { label: "Communication", value: 10 },
+            ],
+            defaultQuestions: [
+              "How do you maintain quality across split-shift housekeeping teams?",
+              "Describe your approach to rapid turnarounds during peak changeover days.",
+              "What digital tools have you used to track housekeeping schedules?",
+              "How do you onboard casual staff quickly while maintaining standards?",
+            ],
+          },
+          {
+            id: "grounds",
+            name: "Grounds & Maintenance",
+            businessUnit: "Assets & Maintenance",
+            roleType: "Grounds",
+            defaultWeights: [
+              { label: "Maintenance Experience", value: 45 },
+              { label: "Safety", value: 25 },
+              { label: "Leadership", value: 20 },
+              { label: "Systems", value: 10 },
+            ],
+            defaultQuestions: [
+              "How do you balance preventative maintenance with guest-impacting repairs?",
+              "Describe your experience with multi-site contractor management.",
+              "What CMMS platforms have you used for scheduling?",
+              "How do you coach teams on safety compliance?",
+            ],
+          },
+        ],
+      };
+
+      const allFilters = {
+        location: ["All", "Brisbane", "Gold Coast", "Sunshine Coast", "Melbourne"],
+        workingRights: ["All", "Citizen", "PR Holder"],
+        status: ["All", "New", "Returning", "Incomplete – Screening Blank"],
+      };
+
+      const progressSteps = [
+        "Link Vacancy",
+        "Job Description",
+        "Evaluation Questions",
+        "Weights & Biases",
+        "Run Analysis",
+      ];
+
+      const StepPill = ({ label, index, current }) => {
+        const active = index === current;
+        const complete = index < current;
+        return (
+          <div className="flex items-center">
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition ${
+                active
+                  ? "border-blue-500 bg-blue-500 text-white"
+                  : complete
+                  ? "border-blue-300 bg-blue-50 text-blue-600"
+                  : "border-slate-300 text-slate-500"
+              }`}
+            >
+              {index + 1}
+            </div>
+            <span className="ml-3 text-sm font-medium text-slate-600">{label}</span>
+            {index !== progressSteps.length - 1 && (
+              <span className="mx-3 h-px w-14 bg-slate-300" aria-hidden></span>
+            )}
+          </div>
+        );
+      };
+
+      const Card = ({ title, description, actions, children }) => (
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+              {description && (
+                <p className="mt-1 text-sm text-slate-600">{description}</p>
+              )}
+            </div>
+            {actions && <div className="flex items-center gap-2">{actions}</div>}
+          </div>
+          <div className="mt-6 space-y-4 text-sm text-slate-700">{children}</div>
+        </div>
+      );
+
+      const LoginScreen = ({ onLogin }) => {
+        const [email, setEmail] = useState("emma.carter@hpg.com.au");
+        const [role, setRole] = useState("HRBP");
+
+        return (
+          <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-8 text-white">
+            <div className="w-full max-w-xl rounded-3xl bg-white/10 p-10 backdrop-blur-md">
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-semibold">ASTRA R3 Access</h1>
+                <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs uppercase tracking-wide">HPG Internal</span>
+              </div>
+              <p className="mt-3 text-sm text-slate-200">
+                Authenticate with your HPG email to simulate SSO. Choose the role you want to explore in the prototype.
+              </p>
+              <div className="mt-8 space-y-5">
+                <label className="block text-sm font-medium text-slate-100">
+                  Work Email
+                  <input
+                    className="mt-2 w-full rounded-xl border border-slate-300/40 bg-white/90 px-4 py-3 text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none"
+                    placeholder="name@hpg.com.au"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </label>
+                <label className="block text-sm font-medium text-slate-100">
+                  Select Role
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                    {["HRBP", "Park Manager", "Hiring Manager"].map((option) => (
+                      <button
+                        key={option}
+                        className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                          role === option
+                            ? "border-blue-400 bg-blue-500/90 text-white shadow-lg"
+                            : "border-white/20 bg-white/5 text-slate-200 hover:bg-white/10"
+                        }`}
+                        onClick={() => setRole(option)}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+                <button
+                  className="w-full rounded-2xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-400"
+                  onClick={() => onLogin({ email, role })}
+                >
+                  Enter ASTRA R3 Prototype
+                </button>
+              </div>
+              <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-4 text-xs text-slate-200">
+                <p className="font-semibold uppercase tracking-wide text-blue-100">New in R3</p>
+                <ul className="mt-2 space-y-2">
+                  <li>• Direct upload + Employment Hero linkage</li>
+                  <li>• AI-generated evaluation questions</li>
+                  <li>• Configurable scoring with weights & biases</li>
+                  <li>• Persistent dashboards and audit-ready exports</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Dashboard = ({ role, email, analyses, onCreate, onSelect, filters, onFiltersChange, onLogout }) => {
+        const filteredAnalyses = useMemo(() => {
+          return analyses.filter((analysis) => {
+            const roleFilter = filters.roleType === "All" || analysis.roleType === filters.roleType;
+            const buFilter = filters.businessUnit === "All" || analysis.businessUnit === filters.businessUnit;
+            const searchMatch = filters.query
+              ? analysis.role.toLowerCase().includes(filters.query.toLowerCase()) ||
+                analysis.id.toLowerCase().includes(filters.query.toLowerCase())
+              : true;
+            const ownerMatch = role === "Park Manager" ? analysis.owner === email : true;
+            return roleFilter && buFilter && searchMatch && ownerMatch;
+          });
+        }, [analyses, filters, role, email]);
+
+        const businessUnits = ["All", "Park Operations", "Assets & Maintenance", "Head Office"];
+        const roleTypes = ["All", "Front of House", "Grounds", "Housekeeping", "Leadership"];
+
+        return (
+          <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-8 px-6 py-12">
+            <header className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-wide text-slate-500">Welcome back</p>
+                <h1 className="text-3xl font-semibold text-slate-900">{email}</h1>
+                <p className="text-sm text-slate-500">Role: {role}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+                  onClick={onLogout}
+                >
+                  Switch Role
+                </button>
+                <button
+                  className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-400"
+                  onClick={onCreate}
+                >
+                  New Analysis
+                </button>
+              </div>
+            </header>
+
+            <Card
+              title="Active & Historical Analyses"
+              description="Search, filter and manage analyses for your assigned vacancies."
+              actions={
+                <div className="flex items-center gap-2">
+                  <button className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">
+                    Export Table
+                  </button>
+                  <button className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">
+                    View Audit Log
+                  </button>
+                </div>
+              }
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-1 items-center gap-3">
+                  <input
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                    placeholder="Search job title or vacancy ID"
+                    value={filters.query}
+                    onChange={(event) => onFiltersChange({ ...filters, query: event.target.value })}
+                  />
+                  <select
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                    value={filters.businessUnit}
+                    onChange={(event) => onFiltersChange({ ...filters, businessUnit: event.target.value })}
+                  >
+                    {businessUnits.map((option) => (
+                      <option key={option}>{option}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                    value={filters.roleType}
+                    onChange={(event) => onFiltersChange({ ...filters, roleType: event.target.value })}
+                  >
+                    {roleTypes.map((option) => (
+                      <option key={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Showing {filteredAnalyses.length} of {analyses.length} records
+                </p>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50">
+                    <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <th className="px-4 py-3">Job Title</th>
+                      <th className="px-4 py-3">Vacancy ID</th>
+                      <th className="px-4 py-3">Business Unit</th>
+                      <th className="px-4 py-3">Date Run</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Version</th>
+                      <th className="px-4 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {filteredAnalyses.map((analysis) => (
+                      <tr key={analysis.id} className="hover:bg-blue-50/40">
+                        <td className="px-4 py-4 font-medium text-slate-900">{analysis.role}</td>
+                        <td className="px-4 py-4 text-slate-600">{analysis.id}</td>
+                        <td className="px-4 py-4 text-slate-600">{analysis.businessUnit}</td>
+                        <td className="px-4 py-4 text-slate-600">{analysis.date}</td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              analysis.status === "Complete"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {analysis.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-slate-600">v{analysis.version}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-blue-600 hover:border-blue-200 hover:bg-blue-50"
+                              onClick={() => onSelect(analysis)}
+                            >
+                              View
+                            </button>
+                            <button className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                              Rerun
+                            </button>
+                            <button className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                              Export
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        );
+      };
+
+      const VacancyStep = ({ value, onChange, onNext }) => {
+        const [vacancyId, setVacancyId] = useState(value.vacancyId || "EH-12345");
+        const [linkedVacancies, setLinkedVacancies] = useState(value.linkedVacancies || ["EH-12345"]);
+        const [manualCVs, setManualCVs] = useState(value.manualCVs || []);
+        const [newVacancy, setNewVacancy] = useState("");
+
+        const addVacancy = () => {
+          if (!newVacancy) return;
+          setLinkedVacancies([...linkedVacancies, newVacancy]);
+          setNewVacancy("");
+        };
+
+        const handleNext = () => {
+          onChange({ vacancyId, linkedVacancies, manualCVs });
+          onNext();
+        };
+
+        return (
+          <Card
+            title="Link Employment Hero Vacancy"
+            description="Attach one or more EH/Seek requisitions and optional manual CV uploads."
+            actions={
+              <button
+                className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400"
+                onClick={handleNext}
+              >
+                Continue
+              </button>
+            }
+          >
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-slate-700">
+                  Primary Vacancy ID
+                  <input
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2 focus:border-blue-400 focus:outline-none"
+                    value={vacancyId}
+                    onChange={(event) => setVacancyId(event.target.value)}
+                  />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  Link Additional Vacancies
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      className="flex-1 rounded-xl border border-slate-200 px-4 py-2 focus:border-blue-400 focus:outline-none"
+                      placeholder="EH-xxxxx"
+                      value={newVacancy}
+                      onChange={(event) => setNewVacancy(event.target.value)}
+                    />
+                    <button
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-blue-600 hover:border-blue-300"
+                      onClick={addVacancy}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {linkedVacancies.map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </label>
+              </div>
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-slate-700">
+                  Upload Manual CVs
+                  <div className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-6 text-center text-sm text-slate-500">
+                    <p>Drag & drop DOCX / PDF / JPEG files</p>
+                    <p className="mt-1 text-xs text-slate-400">(Mock upload only for prototype)</p>
+                    <div className="mt-3 flex justify-center gap-2">
+                      {manualCVs.map((file, index) => (
+                        <span key={index} className="rounded-full bg-slate-200 px-3 py-1 text-xs text-slate-600">
+                          {file}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      className="mt-4 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-blue-600"
+                      onClick={() => setManualCVs([...manualCVs, `Candidate_${manualCVs.length + 1}.pdf`])}
+                    >
+                      Simulate Upload
+                    </button>
+                  </div>
+                </label>
+                <div className="rounded-2xl bg-white p-4 text-xs text-slate-500 shadow-inner">
+                  <p className="font-semibold text-slate-700">Data Sources</p>
+                  <p className="mt-1">• Candidate Data: Employment Hero + Manual Uploads</p>
+                  <p>• Job Data: Role templates, uploaded JD, AI outputs</p>
+                  <p className="mt-2 text-slate-400">Duplicate detection prevents re-analysis of existing candidates.</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      };
+
+      const JobDescriptionStep = ({ value, onChange, onNext, templates = [], role }) => {
+        const defaultMode = role === "Park Manager" ? "template" : templates.length ? "template" : "upload";
+        const [mode, setMode] = useState(value.mode || defaultMode);
+        const [selectedTemplateId, setSelectedTemplateId] = useState(
+          value.templateId || templates[0]?.id || "receptionist"
+        );
+        const [filename, setFilename] = useState(
+          value.filename || `${templates[0]?.name?.replace(/\s+/g, "_") || "Receptionist"}_JD_v3.pdf`
+        );
+
+        const selectedTemplate = templates.find((template) => template.id === selectedTemplateId);
+
+        const handleNext = () => {
+          onChange({
+            mode,
+            templateId: selectedTemplateId,
+            template: selectedTemplate?.name,
+            filename,
+          });
+          onNext();
+        };
+
+        return (
+          <Card
+            title="Job Description"
+            description="Upload a JD or select from approved templates. Version history is saved for audit."
+            actions={
+              <button
+                className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400"
+                onClick={handleNext}
+              >
+                Continue
+              </button>
+            }
+          >
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div>
+                <div className="flex gap-3">
+                  {role !== "Park Manager" && (
+                    <button
+                      className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                        mode === "upload"
+                          ? "bg-blue-500 text-white shadow"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                      onClick={() => setMode("upload")}
+                    >
+                      Upload JD
+                    </button>
+                  )}
+                  <button
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                      mode === "template"
+                        ? "bg-blue-500 text-white shadow"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                    onClick={() => setMode("template")}
+                  >
+                    Use Template
+                  </button>
+                </div>
+                {mode === "upload" || !templates.length ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                    <p className="text-sm text-slate-600">Drop updated JD here</p>
+                    <p className="text-xs text-slate-400">DOCX / PDF supported in prototype</p>
+                    <button
+                      className="mt-3 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-blue-600"
+                      onClick={() => setFilename(`JD_Upload_${new Date().getTime()}.pdf`)}
+                    >
+                      Simulate Upload
+                    </button>
+                    <p className="mt-3 text-xs text-slate-500">Current: {filename}</p>
+                  </div>
+                ) : (
+                    <div className="mt-4 space-y-3">
+                    {templates.map((template) => (
+                      <label
+                        key={template.id}
+                        className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+                      >
+                        <input
+                          type="radio"
+                          name="jd-template"
+                          className="mt-1"
+                          checked={selectedTemplateId === template.id}
+                          onChange={() => {
+                            setSelectedTemplateId(template.id);
+                            setFilename(`${template.name.replace(/\s+/g, "_")}_JD_v3.pdf`);
+                          }}
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">{template.name}</p>
+                          <p className="text-xs text-slate-500">Includes AI question pack + default weighting.</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-2xl bg-white p-5 text-sm text-slate-600 shadow-inner">
+                <p className="text-xs uppercase tracking-wide text-slate-400">Template Details</p>
+                <p className="mt-2 text-sm font-semibold text-slate-700">
+                  {selectedTemplate?.name || "Uploaded Job Description"}
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  {selectedTemplate
+                    ? "Includes AI question pack, weighting model and bias suggestions maintained by HRBP Shared Services."
+                    : "Uploaded JDs remain version controlled and reusable for future analyses."}
+                </p>
+                {selectedTemplate && (
+                  <div className="mt-4 space-y-4">
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Default Weights</p>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {selectedTemplate.defaultWeights.map((weight, index) => (
+                          <li key={index}>• {weight.label}: {weight.value}%</li>
+                        ))}
+                      </ul>
+                    </div>
+                    {selectedTemplate.defaultBiases?.length ? (
+                      <div className="rounded-xl bg-slate-50 p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-400">Bias Suggestions</p>
+                        <ul className="mt-2 space-y-1 text-xs">
+                          {selectedTemplate.defaultBiases.map((bias, index) => (
+                            <li key={index}>• {bias.label || bias}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl bg-slate-50 p-4 text-xs text-slate-500">
+                        Uses HPG standard scoring without additional bias adjustments.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      };
+
+      const QuestionsStep = ({ value, onChange, onNext, template, role }) => {
+        const [questions, setQuestions] = useState(
+          value.questions || template?.defaultQuestions || [
+            "How do you orchestrate arrivals when multiple coaches arrive simultaneously?",
+            "Describe your approach to resolving conflicting guest priorities during peak periods.",
+            "What is your experience with Employment Hero workflows for onboarding?",
+            "How do you coach team members to adopt new digital tools?",
+          ]
+        );
+
+        const canEdit = role !== "Park Manager";
+
+        const regenerate = () => {
+          if (!canEdit) return;
+          setQuestions([
+            "Explain how you would transition a park from manual to digital check-in.",
+            "Describe an example of leveraging guest feedback data to improve service.",
+            "How do you ensure working rights compliance across seasonal staff?",
+            "What metrics do you track weekly to assess reception performance?",
+          ]);
+        };
+
+        const handleNext = () => {
+          onChange({ questions });
+          onNext();
+        };
+
+        return (
+          <Card
+            title="AI-Generated Evaluation Questions"
+            description="Edit or regenerate the question pack created from the JD."
+            actions={
+              <div className="flex items-center gap-3">
+                {canEdit && (
+                  <button
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-blue-600"
+                    onClick={regenerate}
+                  >
+                    Regenerate
+                  </button>
+                )}
+                <button
+                  className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400"
+                  onClick={handleNext}
+                >
+                  Continue
+                </button>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              {questions.map((question, index) => (
+                <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <textarea
+                      className={`w-full resize-none bg-transparent text-sm text-slate-700 focus:outline-none ${
+                        canEdit ? "" : "cursor-not-allowed opacity-70"
+                      }`}
+                      rows={2}
+                      value={question}
+                      disabled={!canEdit}
+                      onChange={(event) => {
+                        const updated = [...questions];
+                        updated[index] = event.target.value;
+                        setQuestions(updated);
+                      }}
+                    />
+                    {canEdit && (
+                      <button
+                        className="text-xs font-semibold text-rose-500"
+                        onClick={() => {
+                          const updated = questions.filter((_, i) => i !== index);
+                          setQuestions(updated);
+                        }}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {canEdit && (
+                <button
+                  className="w-full rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-semibold text-blue-600"
+                  onClick={() => setQuestions([...questions, "New evaluation question..."])}
+                >
+                  Add Question
+                </button>
+              )}
+            </div>
+          </Card>
+        );
+      };
+
+      const WeightsBiasesStep = ({ role, value, onChange, onNext, template }) => {
+        const [weights, setWeights] = useState(
+          value.weights || template?.defaultWeights || [
+            { label: "Experience", value: 40 },
+            { label: "Skills", value: 30 },
+            { label: "Education", value: 20 },
+            { label: "Communication", value: 10 },
+          ]
+        );
+        const templateBiases = template?.defaultBiases?.map((bias) => bias.label || bias) || [];
+        const [biases, setBiases] = useState(value.biases || templateBiases);
+
+        const totalWeight = weights.reduce((acc, item) => acc + Number(item.value || 0), 0);
+        const canContinue = role !== "HRBP" || totalWeight === 100;
+
+        const handleNext = () => {
+          if (!canContinue) return;
+          onChange({ weights, biases });
+          onNext();
+        };
+
+        if (role !== "HRBP") {
+          return (
+            <Card
+              title="Weights & Biases"
+              description="Park Managers use the approved scoring model for this role family."
+              actions={
+                <button
+                  className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400"
+                  onClick={handleNext}
+                >
+                  Continue
+                </button>
+              }
+            >
+              <p className="text-sm text-slate-600">
+                The Receptionist template applies the current HRBP-approved scoring profile. Adjustments can be requested via HR Shared Services.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {weights.map((weight, index) => (
+                  <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">{weight.label}</p>
+                    <p className="mt-2 text-2xl font-semibold text-slate-800">{weight.value}%</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          );
+        }
+
+        return (
+          <Card
+            title="Configure Weights & Biases"
+            description="Tune the scoring model for this analysis. Weights must total 100%."
+            actions={
+              <button
+                className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${
+                  canContinue ? "bg-blue-500 hover:bg-blue-400" : "bg-slate-400"
+                }`}
+                onClick={handleNext}
+              >
+                Continue
+              </button>
+            }
+          >
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <p className="text-xs uppercase tracking-wide text-slate-400">Weights (Total {totalWeight}%)</p>
+                {weights.map((weight, index) => (
+                  <div key={index} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+                    <input
+                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      value={weight.label}
+                      onChange={(event) => {
+                        const updated = [...weights];
+                        updated[index] = { ...weight, label: event.target.value };
+                        setWeights(updated);
+                      }}
+                    />
+                    <input
+                      type="number"
+                      className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      value={weight.value}
+                      onChange={(event) => {
+                        const updated = [...weights];
+                        updated[index] = { ...weight, value: Number(event.target.value) };
+                        setWeights(updated);
+                      }}
+                    />
+                    <button
+                      className="text-xs font-semibold text-rose-500"
+                      onClick={() => setWeights(weights.filter((_, i) => i !== index))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className="rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-blue-600"
+                  onClick={() => setWeights([...weights, { label: "New Factor", value: 0 }])}
+                >
+                  Add Weight
+                </button>
+              </div>
+              <div className="space-y-4">
+                <p className="text-xs uppercase tracking-wide text-slate-400">Bias Adjustments</p>
+                {biases.map((bias, index) => (
+                  <div key={index} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+                    <input
+                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      value={bias}
+                      onChange={(event) => {
+                        const updated = [...biases];
+                        updated[index] = event.target.value;
+                        setBiases(updated);
+                      }}
+                    />
+                    <button
+                      className="text-xs font-semibold text-rose-500"
+                      onClick={() => setBiases(biases.filter((_, i) => i !== index))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className="rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-blue-600"
+                  onClick={() => setBiases([...biases, "+3 hospitality certifications"])}
+                >
+                  Add Bias
+                </button>
+              </div>
+            </div>
+          </Card>
+        );
+      };
+
+      const AnalysisProgress = ({ onComplete }) => {
+        const [progress, setProgress] = useState(0);
+
+        React.useEffect(() => {
+          const interval = setInterval(() => {
+            setProgress((prev) => {
+              const next = Math.min(prev + 20, 100);
+              if (next === 100) {
+                clearInterval(interval);
+                setTimeout(onComplete, 500);
+              }
+              return next;
+            });
+          }, 400);
+          return () => clearInterval(interval);
+        }, [onComplete]);
+
+        return (
+          <Card
+            title="Running Analysis"
+            description="ASTRA is comparing candidate data against the configured model."
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">Analyzing candidates… please keep this tab open.</p>
+              <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span>Syncing Employment Hero candidates</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="grid gap-3 text-xs text-slate-500 md:grid-cols-2">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="font-semibold text-slate-600">Steps</p>
+                  <ul className="mt-1 space-y-1">
+                    <li>• Parsing CVs for skills & tenure</li>
+                    <li>• Extracting systems/tools mentions</li>
+                    <li>• Applying bias adjustments</li>
+                    <li>• Generating shortlist report</li>
+                  </ul>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="font-semibold text-slate-600">Audit Trail</p>
+                  <p className="mt-1">Run started: {new Date().toLocaleString()}</p>
+                  <p>Initiated by: {"emma.carter@hpg.com.au"}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      };
+
+      const CandidateRow = ({ candidate }) => {
+        const [expanded, setExpanded] = useState(false);
+
+        return (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                    Rank
+                  </span>
+                  <span className="text-xl font-semibold text-slate-800">{candidate.score}</span>
+                  <p className="text-lg font-medium text-slate-900">{candidate.name}</p>
+                  {candidate.flags?.map((flag) => (
+                    <span
+                      key={flag}
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        flag.includes("New")
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {flag}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                  <span>Location: {candidate.location}</span>
+                  <span>Working Rights: {candidate.workingRights}</span>
+                  <span>Salary: {candidate.salary}</span>
+                  <span>Systems: {candidate.systems.join(", ")}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="rounded-xl border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                  Export Profile
+                </button>
+                <button
+                  className="rounded-xl border border-slate-200 px-3 py-1 text-xs font-semibold text-blue-600"
+                  onClick={() => setExpanded(!expanded)}
+                >
+                  {expanded ? "Hide" : "Expand"}
+                </button>
+              </div>
+            </div>
+            {expanded && (
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">ASTRA Summary</p>
+                  <p className="mt-2">{candidate.summary}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Extracted Systems & Tools</p>
+                  <p className="mt-2">{candidate.insights.tools}</p>
+                  <p className="mt-4 text-xs text-slate-500">Cover letter insight:</p>
+                  <p className="text-sm">{candidate.insights.coverLetter}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Score Breakdown</p>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {candidate.insights.biasBreakdown.map((item, index) => (
+                      <li key={index}>• {item}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-4 text-xs text-slate-400">Run timestamp: {new Date().toLocaleString()}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const ResultsStep = ({ analysis, filters, onFiltersChange, onBackToDashboard }) => {
+        const candidates = analysis.shortlist.candidates;
+        const filtered = candidates.filter((candidate) => {
+          const locationMatch = filters.location === "All" || candidate.location === filters.location;
+          const rightsMatch =
+            filters.workingRights === "All" || candidate.workingRights === filters.workingRights;
+          const statusMatch = filters.status === "All" || candidate.status === filters.status;
+          return locationMatch && rightsMatch && statusMatch;
+        });
+
+        return (
+          <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-6 py-12">
+            <header className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-wide text-slate-500">Shortlist ready</p>
+                <h1 className="text-3xl font-semibold text-slate-900">{analysis.role}</h1>
+                <p className="text-sm text-slate-500">Vacancy {analysis.id} · Run {analysis.shortlist.runAt}</p>
+              </div>
+              <button
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+                onClick={onBackToDashboard}
+              >
+                Back to Dashboard
+              </button>
+            </header>
+
+            <Card
+              title="Shortlist Overview"
+              description="Filter candidates and review AI insights before export."
+              actions={
+                <div className="flex flex-wrap items-center gap-2">
+                  <button className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">
+                    Export CSV
+                  </button>
+                  <button className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">
+                    Export PDF (Top 10)
+                  </button>
+                  <button className="rounded-xl bg-blue-500 px-3 py-2 text-xs font-semibold text-white">
+                    Rerun Analysis
+                  </button>
+                </div>
+              }
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                  value={filters.location}
+                  onChange={(event) => onFiltersChange({ ...filters, location: event.target.value })}
+                >
+                  {allFilters.location.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+                <select
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                  value={filters.workingRights}
+                  onChange={(event) => onFiltersChange({ ...filters, workingRights: event.target.value })}
+                >
+                  {allFilters.workingRights.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+                <select
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                  value={filters.status}
+                  onChange={(event) => onFiltersChange({ ...filters, status: event.target.value })}
+                >
+                  {allFilters.status.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+                <span className="text-xs text-slate-500">{filtered.length} candidates shown</span>
+              </div>
+              <div className="space-y-4">
+                {filtered.map((candidate) => (
+                  <CandidateRow key={candidate.id} candidate={candidate} />
+                ))}
+              </div>
+            </Card>
+            <Card title="Audit Trail" description="Trace configuration used for this run.">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Weights</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {analysis.weights.map((weight, index) => (
+                      <li key={index}>• {weight.label}: {weight.value}%</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Biases</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {analysis.biases.map((bias, index) => (
+                      <li key={index}>• {bias.label}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Evaluation Questions</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {analysis.questions.slice(0, 4).map((question, index) => (
+                      <li key={index}>• {question}</li>
+                    ))}
+                    {analysis.questions.length > 4 && <li>• …</li>}
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          </div>
+        );
+      };
+
+      const AnalysisWizard = ({ user, templateOptions, onCancel, onComplete }) => {
+        const role = user.role;
+        const [step, setStep] = useState(0);
+        const [formData, setFormData] = useState({});
+        const [showProgress, setShowProgress] = useState(false);
+        const selectedTemplate =
+          templateOptions.find((item) => item.id === formData.jobDescription?.templateId) ||
+          templateOptions[0];
+
+        const handleComplete = () => {
+          setShowProgress(false);
+          const template =
+            templateOptions.find((item) => item.id === formData.jobDescription?.templateId) ||
+            templateOptions[0];
+          const newAnalysis = {
+            id: formData.vacancy?.vacancyId || "EH-12345",
+            role: template.name,
+            businessUnit: template.businessUnit || "Park Operations",
+            roleType: template.roleType || "Front of House",
+            owner: user.email,
+            date: new Date().toLocaleDateString(),
+            status: "Complete",
+            version: 1,
+            roleTemplate: template.name,
+            questions: formData.questions?.questions || template.defaultQuestions || [],
+            weights:
+              role === "HRBP"
+                ? formData.weights?.weights || template.defaultWeights
+                : template.defaultWeights,
+            biases:
+              role === "HRBP"
+                ? (formData.weights?.biases || template.defaultBiases || []).map((item) =>
+                    typeof item === "string" ? { label: item } : item
+                  )
+                : (template.defaultBiases || []).map((item) =>
+                    typeof item === "string" ? { label: item } : item
+                  ),
+            shortlist: mockAnalyses[0].shortlist,
+          };
+          onComplete(newAnalysis);
+        };
+
+        const renderStep = () => {
+          if (showProgress) {
+            return <AnalysisProgress onComplete={handleComplete} />;
+          }
+
+          switch (step) {
+            case 0:
+              return (
+                <VacancyStep
+                  value={formData.vacancy || {}}
+                  onChange={(value) => setFormData({ ...formData, vacancy: value })}
+                  onNext={() => setStep(1)}
+                />
+              );
+            case 1:
+              return (
+                <JobDescriptionStep
+                  value={formData.jobDescription || {}}
+                  onChange={(value) => setFormData({ ...formData, jobDescription: value })}
+                  onNext={() => setStep(2)}
+                  templates={templateOptions}
+                  role={role}
+                />
+              );
+            case 2:
+              return (
+                <QuestionsStep
+                  value={formData.questions || {}}
+                  onChange={(value) => setFormData({ ...formData, questions: value })}
+                  onNext={() => setStep(3)}
+                  template={selectedTemplate}
+                  role={role}
+                />
+              );
+            case 3:
+              return (
+                <WeightsBiasesStep
+                  role={role}
+                  value={formData.weights || {}}
+                  onChange={(value) => setFormData({ ...formData, weights: value })}
+                  onNext={() => setStep(4)}
+                  template={selectedTemplate}
+                />
+              );
+            case 4:
+              return (
+                <Card
+                  title="Review & Run Analysis"
+                  description="Confirm configuration before executing the shortlist."
+                  actions={
+                    <button
+                      className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white"
+                      onClick={() => setShowProgress(true)}
+                    >
+                      Run Analysis
+                    </button>
+                  }
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Vacancy</p>
+                      <p className="mt-1 font-semibold text-slate-700">
+                        {formData.vacancy?.vacancyId || "EH-12345"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Linked: {(formData.vacancy?.linkedVacancies || []).join(", ")}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Job Description</p>
+                      <p className="mt-1 font-semibold text-slate-700">
+                        {formData.jobDescription?.template || formData.jobDescription?.filename}
+                      </p>
+                      <p className="text-xs text-slate-500">Stored version for audit trail.</p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Questions</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formData.questions?.questions?.length || 0} active questions
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Weights & Biases</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Weights: {formData.weights?.weights?.map((item) => item.label).join(", ") || "Default"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Biases: {formData.weights?.biases?.length || 0}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              );
+            default:
+              return null;
+          }
+        };
+
+        return (
+          <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-6 py-10">
+            <header className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold text-slate-900">New Analysis</h1>
+              <button className="text-sm font-semibold text-slate-500" onClick={onCancel}>
+                Cancel
+              </button>
+            </header>
+            <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+              {progressSteps.map((label, index) => (
+                <StepPill key={label} label={label} index={index} current={step} />
+              ))}
+            </div>
+            {renderStep()}
+          </div>
+        );
+      };
+
+      const App = () => {
+        const [user, setUser] = useState(null);
+        const [analyses, setAnalyses] = useState(mockAnalyses);
+        const [view, setView] = useState("login");
+        const [selectedAnalysis, setSelectedAnalysis] = useState(null);
+        const [dashboardFilters, setDashboardFilters] = useState({
+          query: "",
+          businessUnit: "All",
+          roleType: "All",
+        });
+        const [shortlistFilters, setShortlistFilters] = useState({
+          location: "All",
+          workingRights: "All",
+          status: "All",
+        });
+
+        const handleLogin = (details) => {
+          setUser(details);
+          setView("dashboard");
+        };
+
+        const handleCreate = () => {
+          setView("wizard");
+        };
+
+        const handleCompleteAnalysis = (analysis) => {
+          setAnalyses((prev) => [analysis, ...prev]);
+          setSelectedAnalysis(analysis);
+          setView("results");
+        };
+
+        const handleSelectAnalysis = (analysis) => {
+          setSelectedAnalysis(analysis);
+          setShortlistFilters({ location: "All", workingRights: "All", status: "All" });
+          setView("results");
+        };
+
+        const handleLogout = () => {
+          setUser(null);
+          setView("login");
+        };
+
+        if (view === "login" || !user) {
+          return <LoginScreen onLogin={handleLogin} />;
+        }
+
+        if (view === "wizard") {
+          return (
+            <AnalysisWizard
+              user={user}
+              templateOptions={roleTemplates[user.role] || roleTemplates.HRBP}
+              onCancel={() => setView("dashboard")}
+              onComplete={handleCompleteAnalysis}
+            />
+          );
+        }
+
+        if (view === "results" && selectedAnalysis) {
+          return (
+            <ResultsStep
+              analysis={selectedAnalysis}
+              filters={shortlistFilters}
+              onFiltersChange={setShortlistFilters}
+              onBackToDashboard={() => setView("dashboard")}
+            />
+          );
+        }
+
+        return (
+          <Dashboard
+            role={user.role}
+            email={user.email}
+            analyses={analyses}
+            onCreate={handleCreate}
+            onSelect={handleSelectAnalysis}
+            filters={dashboardFilters}
+            onFiltersChange={setDashboardFilters}
+            onLogout={handleLogout}
+          />
+        );
+      };
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
